@@ -31,6 +31,7 @@ function CheckSteamtools {
 
 if (CheckSteamtools) {
     Log "INFO" "Steamtools already installed"
+    Read-Host "Press Enter to exit"
     exit
 }
 
@@ -60,3 +61,5 @@ if (CheckSteamtools) {
 } else {
     Log "ERR" "Installation failed, try again."
 }
+
+Read-Host "Press Enter to exit"
