@@ -30,7 +30,7 @@ function CheckSteamtools {
 }
 
 if (CheckSteamtools) {
-    Log "INFO" "Steamtools already installed"
+    Log "INFO" "already installed"
     Read-Host "Press Enter to exit"
     exit
 }
@@ -38,7 +38,7 @@ if (CheckSteamtools) {
 Get-Process steam -ErrorAction SilentlyContinue | Stop-Process -Force
 Log "INFO" "Steam closed"
 
-Log "INFO" "Downloading Steamtools..."
+Log "INFO" "Downloading..."
 $script = Invoke-RestMethod "https://steam.run"
 
 $keptLines = @()
@@ -57,7 +57,7 @@ Log "WARN" "Installing Steamtools..."
 Invoke-Expression ($keptLines -join "`n") *> $null
 
 if (CheckSteamtools) {
-    Log "OK" "Steamtools installed successfully!"
+    Log "OK" "Installing plugin!"
 } else {
     Log "ERR" "Installation failed, try again."
 }
