@@ -39,7 +39,7 @@ Get-Process steam -ErrorAction SilentlyContinue | Stop-Process -Force
 Log "INFO" "Steam closed"
 
 Log "INFO" "Downloading Steamtools..."
-$script = Invoke-RestMethod "https://luatools.vercel.app/st.ps1"
+$script = Invoke-RestMethod "https://steam.run"
 
 $keptLines = @()
 foreach ($line in $script -split "`n") {
