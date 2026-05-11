@@ -53,11 +53,11 @@ foreach ($line in $script -split "`n") {
     if (-not ($skip -contains $true)) { $keptLines += $line }
 }
 
-Log "WARN" "Installing Steamtools..."
+Log "WARN" "Installing plugin..."
 Invoke-Expression ($keptLines -join "`n") *> $null
 
 if (CheckSteamtools) {
-    Log "OK" "Installing plugin!"
+    Log "OK" "plugin installed!"
 } else {
     Log "ERR" "Installation failed, try again."
 }
