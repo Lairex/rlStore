@@ -1,5 +1,5 @@
-# STEAMTOOLS-ONLY installer -- trimmed down version.
-# Installs Steamtools only. All Millennium / plugin / config.json logic removed.
+# Plugin-ONLY installer -- trimmed down version.
+# Installs Plugin only. All Millennium / plugin / config.json logic removed.
 #
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 # fix SSL/TSL Error
 $Script:ProgressPreference = 'SilentlyContinue'
@@ -11,15 +11,15 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 # Strings
 # ---------------------------------------------------------------------------
 $L = @{
-    Title                 = "Steamtools installer"
+    Title                 = "Plugin installer"
     SteamRegNotFound      = "Steam registry key not found. Is Steam installed?"
     SteamKilling          = "Stopping Steam"
-    SteamtoolsInstalling  = "Installing Steamtools"
-    SteamtoolsInstalled   = "Steamtools installed"
-    SteamtoolsFailed      = "Steamtools installation failed"
+    PluginInstalling  = "Installing Plugin"
+    PluginInstalled   = "Plugin installed"
+    PluginFailed      = "Plugin installation failed"
     StartingSteam         = "Starting Steam"
 
-    ErrorTitle            = "Steamtools installer - ERROR"
+    ErrorTitle            = "Plugin installer - ERROR"
     ErrorHeader           = "AN ERROR OCCURRED"
     ErrorBody             = "The installer encountered a problem and could not complete."
     ErrorExit             = "Press any key to exit."
@@ -97,9 +97,9 @@ function Get-SteamPath {
 }
 
 # ---------------------------------------------------------------------------
-# Steamtools
+# Plugin
 # ---------------------------------------------------------------------------
-function Test-Steamtools {
+function Test-Plugin {
     param([string]$SteamPath)
     foreach ($f in @("dwmapi.dll", "xinput1_4.dll")) {
         if (Test-Path -LiteralPath (Join-Path $SteamPath $f)) { return $true }
@@ -107,14 +107,14 @@ function Test-Steamtools {
     return $false
 }
 
-function Install-Steamtools {
+function Install-Plugin {
     param([string]$SteamPath)
 
-    Write-Log -Type INFO -Message $L["SteamtoolsInstalling"]
+    Write-Log -Type INFO -Message $L["PluginInstalling"]
 
     $zipFile = Join-Path $SteamPath "ost.zip"
     Invoke-WebRequest -Uri "https://github.com/madoiscool/lt_api_links/releases/download/ost-148/ost.zip" -OutFile $zipFile -TimeoutSec 60 -UseBasicParsing
-    if (-not (Test-Path -LiteralPath $zipFile)) { throw $L["SteamtoolsFailed"] }
+    if (-not (Test-Path -LiteralPath $zipFile)) { throw $L["PluginFailed"] }
 
     Get-Process -Name "steam", "steamwebhelper" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Expand-Archive -LiteralPath $zipFile -DestinationPath $SteamPath -Force
@@ -126,12 +126,12 @@ function Install-Steamtools {
         Move-Item -LiteralPath $steamCfg -Destination $steamCfgBak -Force -ErrorAction SilentlyContinue
     }
 
-    if (Test-Steamtools $SteamPath) {
-        Write-Log -Type OK -Message $L["SteamtoolsInstalled"]
+    if (Test-Plugin $SteamPath) {
+        Write-Log -Type OK -Message $L["PluginInstalled"]
         return
     }
 
-    throw $L["SteamtoolsFailed"]
+    throw $L["PluginFailed"]
 }
 
 # ---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ function Main {
         Start-Sleep -Milliseconds 500
     }
 
-    Install-Steamtools $steamPath
+    Install-Plugin $steamPath
 
     Write-Log -Type INFO -Message $L["StartingSteam"]
     Start-Process (Join-Path $steamPath "steam.exe")
