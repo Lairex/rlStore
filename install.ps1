@@ -1,15 +1,9 @@
-# Plugin-ONLY installer -- trimmed down version.
-# Installs Plugin only. All Millennium / plugin / config.json logic removed.
-#
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 # fix SSL/TSL Error
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $Script:ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $null = chcp 65001
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-# ---------------------------------------------------------------------------
-# Strings
-# ---------------------------------------------------------------------------
 $L = @{
     Title                 = "Plugin installer"
     SteamRegNotFound      = "Steam registry key not found. Is Steam installed?"
@@ -25,9 +19,6 @@ $L = @{
     ErrorExit             = "Press any key to exit."
 }
 
-# ---------------------------------------------------------------------------
-# Global error trap
-# ---------------------------------------------------------------------------
 $Script:OriginalErrorAction = $ErrorActionPreference
 $ErrorActionPreference = "Stop"
 
@@ -57,10 +48,6 @@ trap {
     $ErrorActionPreference = $Script:OriginalErrorAction
     break
 }
-
-# ---------------------------------------------------------------------------
-# Console helpers
-# ---------------------------------------------------------------------------
 $Host.UI.RawUI.WindowTitle = $L["Title"]
 
 $LogColors = @{ "OK"="Green"; "INFO"="Cyan"; "ERR"="Red"; "WARN"="Yellow" }
@@ -75,10 +62,6 @@ function Write-Log {
     Write-Host "[$ts] " -ForegroundColor Cyan -NoNewline
     Write-Host "[$Type] $Message" -ForegroundColor $LogColors[$Type]
 }
-
-# ---------------------------------------------------------------------------
-# Steam path
-# ---------------------------------------------------------------------------
 function Get-SteamPath {
     $registries = @(
         "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam",
@@ -96,9 +79,6 @@ function Get-SteamPath {
     Write-Log -Type ERR -Message $L["SteamRegNotFound"]
 }
 
-# ---------------------------------------------------------------------------
-# Plugin
-# ---------------------------------------------------------------------------
 function Test-Plugin {
     param([string]$SteamPath)
     foreach ($f in @("dwmapi.dll", "xinput1_4.dll")) {
@@ -134,9 +114,6 @@ function Install-Plugin {
     throw $L["PluginFailed"]
 }
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 function Main {
     $steamPath = Get-SteamPath
 
