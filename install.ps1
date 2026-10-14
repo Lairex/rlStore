@@ -28,10 +28,10 @@ if (-not $steamPath) {
 
         Copy-Item -Path "$tempExtract\*" -Destination $steamPath -Recurse -Force
 
-        Write-Host "BetterSteamTools successfully installed to: $steamPath" -ForegroundColor Green
+        Write-Host "installed to: $steamPath" -ForegroundColor Green
     }
     catch {
-        Write-Host "Failed to install BetterSteamTools: $_" -ForegroundColor Red
+        Write-Host "Failed to install: $_" -ForegroundColor Red
     }
     finally {
         if (Test-Path $tempZip) { Remove-Item -Path $tempZip -Force }
