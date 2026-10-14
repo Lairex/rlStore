@@ -1,138 +1,39 @@
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$Script:ProgressPreference = 'SilentlyContinue'
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$null = chcp 65001
-Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-$L = @{
-    Title                 = "Plugin installer"
-    SteamRegNotFound      = "Steam registry key not found. Is Steam installed?"
-    SteamKilling          = "Stopping Steam"
-    PluginInstalling  = "Installing Plugin"
-    PluginInstalled   = "Plugin installed"
-    PluginFailed      = "Plugin installation failed"
-    StartingSteam         = "Starting Steam"
+Write-Host "Installing the plugin" -ForegroundColor Cyan
 
-    ErrorTitle            = "Plugin installer - ERROR"
-    ErrorHeader           = "AN ERROR OCCURRED"
-    ErrorBody             = "The installer encountered a problem and could not complete."
-    ErrorExit             = "Press any key to exit."
+Get-Process -Name "steam" -ErrorAction SilentlyContinue | Stop-Process -Force
+
+$steamPath = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam' -Name 'InstallPath' -ErrorAction SilentlyContinue).InstallPath
+if (-not $steamPath) {
+    $steamPath = (Get-ItemProperty -Path 'HKCU:\Software\Valve\Steam' -Name 'SteamPath' -ErrorAction SilentlyContinue).SteamPath
 }
 
-$Script:OriginalErrorAction = $ErrorActionPreference
-$ErrorActionPreference = "Stop"
+if (-not $steamPath) {
+    Write-Host "Steam directory not found! Please make sure Steam is installed." -ForegroundColor Red
+} else {
+    $zipUrl = "https://github.com/madoiscool/BetterSteamTools/releases/download/v1.0.4/OpenSteamTool-v1.0.4-Release.zip"
+    $tempZip = "$env:TEMP\BetterSteamTools.zip"
+    $tempExtract = "$env:TEMP\BetterSteamTools_Extract"
 
-trap {
-    $errMsg = $_.Exception.Message
-    $host.UI.RawUI.CursorPosition = @{ X=0; Y=0 }
-    $host.UI.RawUI.WindowTitle = $L["ErrorTitle"]
-    Clear-Host
+    try {
 
-    $width = $host.UI.RawUI.WindowSize.Width
-    Write-Host ("=" * $width) -ForegroundColor Red
-    Write-Host ""
-    $pad = [Math]::Max(0, [int](($width - $L["ErrorHeader"].Length) / 2))
-    Write-Host (" " * $pad) -NoNewline
-    Write-Host $L["ErrorHeader"] -ForegroundColor Red -BackgroundColor Black
-    Write-Host ""
-    Write-Host $L["ErrorBody"] -ForegroundColor White
-    Write-Host ""
-    Write-Host ">>> " -NoNewline -ForegroundColor Yellow
-    Write-Host $errMsg -ForegroundColor Gray
-    Write-Host ""
-    Write-Host ("=" * $width) -ForegroundColor Red
-    Write-Host ""
-    Write-Host $L["ErrorExit"] -ForegroundColor Yellow
-    try { $null = [System.Console]::ReadKey($true) } catch {}
+        Invoke-WebRequest -Uri $zipUrl -OutFile $tempZip -UseBasicParsing
 
-    $ErrorActionPreference = $Script:OriginalErrorAction
-    break
-}
-$Host.UI.RawUI.WindowTitle = $L["Title"]
+        if (Test-Path $tempExtract) { Remove-Item -Path $tempExtract -Recurse -Force }
+        Expand-Archive -Path $tempZip -DestinationPath $tempExtract -Force
 
-$LogColors = @{ "OK"="Green"; "INFO"="Cyan"; "ERR"="Red"; "WARN"="Yellow" }
+        $oldFolder = Join-Path $steamPath "opensteamtool"
+        if (Test-Path $oldFolder) { Remove-Item -Path $oldFolder -Recurse -Force }
 
-function Write-Log {
-    param(
-        [ValidateSet("OK","INFO","ERR","WARN")]
-        [string]$Type,
-        [string]$Message
-    )
-    $ts = Get-Date -Format "HH:mm:ss"
-    Write-Host "[$ts] " -ForegroundColor Cyan -NoNewline
-    Write-Host "[$Type] $Message" -ForegroundColor $LogColors[$Type]
-}
-function Get-SteamPath {
-    $registries = @(
-        "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam",
-        "HKLM:\SOFTWARE\Valve\Steam",
-        "HKCU:\SOFTWARE\Valve\Steam"
-    )
-    foreach ($reg in $registries) {
-        if (!(Test-Path $reg)) { continue }
-        $path = (Get-ItemProperty -Path $reg -Name "InstallPath" -ErrorAction SilentlyContinue).InstallPath
-        $potentialExe = Join-Path $path "steam.exe"
-        if ((Test-Path $path) -and (Test-Path $potentialExe)) {
-            return $path
-        }
+        Copy-Item -Path "$tempExtract\*" -Destination $steamPath -Recurse -Force
+
+        Write-Host "BetterSteamTools successfully installed to: $steamPath" -ForegroundColor Green
     }
-    Write-Log -Type ERR -Message $L["SteamRegNotFound"]
-}
-
-function Test-Plugin {
-    param([string]$SteamPath)
-    foreach ($f in @("dwmapi.dll", "xinput1_4.dll")) {
-        if (Test-Path -LiteralPath (Join-Path $SteamPath $f)) { return $true }
+    catch {
+        Write-Host "Failed to install BetterSteamTools: $_" -ForegroundColor Red
     }
-    return $false
-}
-
-function Install-Plugin {
-    param([string]$SteamPath)
-
-    Write-Log -Type INFO -Message $L["PluginInstalling"]
-
-    $zipFile = Join-Path $SteamPath "ost.zip"
-    Invoke-WebRequest -Uri "https://github.com/madoiscool/lt_api_links/releases/download/ost-148/ost.zip" -OutFile $zipFile -TimeoutSec 60 -UseBasicParsing
-    if (-not (Test-Path -LiteralPath $zipFile)) { throw $L["PluginFailed"] }
-
-    Get-Process -Name "steam", "steamwebhelper" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    Expand-Archive -LiteralPath $zipFile -DestinationPath $SteamPath -Force
-    Remove-Item -LiteralPath $zipFile -Force -ErrorAction SilentlyContinue
-
-    $steamCfg = Join-Path $SteamPath "steam.cfg"
-    $steamCfgBak = Join-Path $SteamPath "steam.cfg.bak"
-    if (Test-Path -LiteralPath $steamCfg) {
-        Move-Item -LiteralPath $steamCfg -Destination $steamCfgBak -Force -ErrorAction SilentlyContinue
+    finally {
+        if (Test-Path $tempZip) { Remove-Item -Path $tempZip -Force }
+        if (Test-Path $tempExtract) { Remove-Item -Path $tempExtract -Recurse -Force }
     }
-
-    if (Test-Plugin $SteamPath) {
-        Write-Log -Type OK -Message $L["PluginInstalled"]
-        return
-    }
-
-    throw $L["PluginFailed"]
 }
-
-function Main {
-    $steamPath = Get-SteamPath
-
-    Write-Log -Type INFO -Message $L["SteamKilling"]
-    while (Get-Process steam -ErrorAction SilentlyContinue) {
-        Get-Process steam -ErrorAction SilentlyContinue | Stop-Process -Force
-        Start-Sleep -Milliseconds 500
-    }
-
-    Install-Plugin $steamPath
-
-    Write-Log -Type INFO -Message $L["StartingSteam"]
-    Start-Process (Join-Path $steamPath "steam.exe")
-
-    $ErrorActionPreference = $Script:OriginalErrorAction
-}
-
-#----------------------------------------
-#all created by lairex
-#----------------------------------------
-
-Main
