@@ -1,5 +1,6 @@
 
 Write-Host "Installing the plugin" -ForegroundColor Cyan
+Write-Host "Fixed by lairex" -ForegroundColor Cyan
 
 Get-Process -Name "steam" -ErrorAction SilentlyContinue | Stop-Process -Force
 
